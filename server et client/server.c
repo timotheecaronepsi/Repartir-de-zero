@@ -74,7 +74,6 @@ void add_user(const char *user, const char *pass)
         if (!f) { perror("users.json"); return; }
         fprintf(f, "[\n{\"username\":\"%s\",\"password\":\"%s\"}\n]", user, hashpass);
         fclose(f);
-        printf("Nouvel utilisateur cree: %s\n", user);
         return;
     }
 
@@ -84,7 +83,6 @@ void add_user(const char *user, const char *pass)
         fseek(f, 0, SEEK_SET);
         fprintf(f, "[\n{\"username\":\"%s\",\"password\":\"%s\"}\n]", user, hashpass);
         fclose(f);
-        printf("Nouvel utilisateur cree: %s\n", user);
         return;
     }
 
@@ -108,8 +106,6 @@ void add_user(const char *user, const char *pass)
     fprintf(f, "{\"username\":\"%s\",\"password\":\"%s\"}\n]", user, hashpass);
     fflush(f);
     fclose(f);
-
-    printf("Nouvel utilisateur cree: %s\n", user);
 }
 
 // --- Vérifie user + password ---
@@ -188,26 +184,18 @@ for (i = 0; i < MAX_CLIENTS; i++) {
     SOCKET sd = clients[i].sock;
     if (sd > 0 && FD_ISSET(sd, &readfds)) {
         valread = recv(sd, buffer, BUFFER_SIZE-1, 0);
-        if (valread <= 0) {
-            printf("Client %s deconnecte\n", clients[i].username);
-            closesocket(sd);
-            clients[i].sock = 0;
-            clients[i].connected = 0;
-            clients[i].username[0] = '\0';
-            continue;
-        } else {
-            buffer[valread] = '\0';
+            if (valread <= 0 || strncmp(buffer, "quit", 4) == 0) {
+                if (valread > 0 && strncmp(buffer, "quit", 4) == 0)
+                    send(sd, "Deconnexion OK\n", 15, 0);
 
-                // --- Commande quit ---
-            if (strncmp(buffer, "quit", 4) == 0 || strncmp(buffer, "QUIT", 4) == 0) {
-                printf("Client %s a quitte\n", clients[i].username);
-                send(sd, "Deconnexion OK\n", 15, 0);
-                closesocket(sd);
+                printf("Client '%s' (socket %d) deconnecte\n", clients[i].username, clients[i].sock);
+                closesocket(clients[i].sock);
                 clients[i].sock = 0;
                 clients[i].connected = 0;
                 clients[i].username[0] = '\0';
                 continue;
-            }
+            } else {
+            buffer[valread] = '\0';
 
             // --- Traitement des commandes INSCRIPTION/CONNEXION ---
             if (strncmp(buffer, "INSCRIPTION:", 12) == 0) {
