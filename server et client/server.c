@@ -41,6 +41,23 @@ void sha256_hex(const char *input, char *out_hex)
     out_hex[64] = '\0';
 }
 
+DWORD WINAPI alert_thread(LPVOID arg) {
+    Client *clients = (Client*)arg;
+    const char *alert_msg = "\033[31m[ALERTE] Ultron attaquera bientot preparez-vous !!!\033[0m\n";
+    // \033[31m = rouge, \033[0m = reset
+    for (;;) {
+        Sleep(120000); // 600 000 ms = 10 minutes
+        for (int i = 0; i < MAX_CLIENTS; i++) {
+            if (clients[i].connected) {
+                send(clients[i].sock, alert_msg, (int)strlen(alert_msg), 0);
+            }
+        }
+        printf("Alerte envoyee a tous les clients.\n");
+    }
+    return 0;
+}
+
+
 // --- Vérifie si l'utilisateur existe déjà ---
 int user_exists(const char *username) {
     FILE *f = fopen("users.json", "r");
@@ -136,6 +153,8 @@ int main()
 
     Client clients[MAX_CLIENTS];
     for (i = 0; i < MAX_CLIENTS; i++) { clients[i].sock = 0; clients[i].connected = 0; clients[i].username[0]='\0'; }
+
+    CreateThread(NULL, 0, alert_thread, clients, 0, NULL); //Créer le Thread pour envoyer l'annonce ultron
 
     if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) { printf("Erreur WSAStartup : %d\n", WSAGetLastError()); return 1; }
 
