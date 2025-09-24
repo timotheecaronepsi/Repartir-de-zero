@@ -24,6 +24,20 @@ int demander_choix(int min, int max) {
     }
 }
 
+// Thread pour lire les messages du serveur
+DWORD WINAPI receive_thread(LPVOID arg) {
+    SOCKET s = *(SOCKET*)arg;
+    char buffer[1024];
+    int r;
+    while ((r = recv(s, buffer, sizeof(buffer)-1, 0)) > 0) {
+        buffer[r] = '\0';
+        // Efface la ligne courante et réaffiche le prompt après le message
+        printf("\r%s\n> ", buffer);
+        fflush(stdout);
+    }
+    return 0;
+}
+
 int main() {
     WSADATA wsa;
     struct sockaddr_in server;
@@ -87,27 +101,29 @@ int main() {
             resp[r] = '\0';
             printf("Serveur: %s\n", resp);
 
-            if (strncmp(resp,"Connexion OK",12)==0) {
-                printf("=== Mode chat, tapez 'quit' pour sortir ===\n");
-                while (1) {
-                    char text[512];
-                    printf("> ");
-                    fgets(text, sizeof(text), stdin);
-                    text[strcspn(text, "\n")] = 0;
+        if (strncmp(resp,"Connexion OK",12)==0) {
+            printf(
+                "=== Mode chat ===\n"
+                " - Tapez 'quit' pour quitter la session\n"
+                " - Message global :  msgall:Votre texte\n"
+                " - Message prive  :  msg:NomDestinataire:Votre texte\n"
+                "=================\n"
+            );
+            CreateThread(NULL, 0, receive_thread, &s, 0, NULL); // <-- écoute en parallèle
 
-                    if (strcmp(text,"quit")==0) {
-                        send(s, "quit", 4, 0);
-                        int rchat = recv(s, resp, sizeof(resp)-1, 0);
-                        if (rchat > 0) {
-                            resp[rchat] = '\0';
-                            printf("%s\n", resp); // affichera "Deconnexion OK"
-                        }
-                        break;
-                    }
+            while (1) {
+                char text[512];
+                printf("> ");
+                fgets(text, sizeof(text), stdin);
+                text[strcspn(text, "\n")] = 0;
 
-                    send(s, text, strlen(text), 0);
+                if (strcmp(text,"quit")==0) {
+                    send(s, "quit", 4, 0);
+                    break;
                 }
+                send(s, text, strlen(text), 0);
             }
+        }
         }
 
         closesocket(s); // <- fermer la socket après chaque session

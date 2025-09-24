@@ -236,7 +236,43 @@ for (i = 0; i < MAX_CLIENTS; i++) {
 
             // --- Si le client est connecté, tout le reste est chat ---
             if (clients[i].connected && buffer[0] != '\0') {
-                printf("[%s] Message: %s\n", clients[i].username, buffer);
+                // Messages globaux : msgall:texte
+                if (strncmp(buffer, "msgall:", 7) == 0) {
+                    char *msg = buffer + 7;
+                    char finalmsg[1024];
+                    sprintf(finalmsg, "[%s -> ALL] %s\n", clients[i].username, msg);
+                    printf("%s", finalmsg);
+                    for (int j = 0; j < MAX_CLIENTS; j++) {
+                        if (clients[j].connected && clients[j].sock != clients[i].sock) {
+                            send(clients[j].sock, finalmsg, strlen(finalmsg), 0);
+                        }
+                    }
+                }
+                // Messages privés : msg:dest:texte
+                else if (strncmp(buffer, "msg:", 4) == 0) {
+                    char dest[50], msg[512];
+                    if (sscanf(buffer + 4, "%49[^:]:%511[^\n]", dest, msg) == 2) {
+                        int found = 0;
+                        for (int j = 0; j < MAX_CLIENTS; j++) {
+                            if (clients[j].connected && strcmp(clients[j].username, dest) == 0) {
+                                char fullmsg[1024];
+                                sprintf(fullmsg, "[prive de %s] %s\n", clients[i].username, msg);
+                                send(clients[j].sock, fullmsg, strlen(fullmsg), 0);
+                                printf("[%s -> %s] %s\n", clients[i].username, dest, msg);
+                                found = 1;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            char err[] = "Erreur: utilisateur non trouve\n";
+                            send(clients[i].sock, err, strlen(err), 0);
+                        }
+                    }
+                }
+                // Message normal (ou log)
+                else {
+                    printf("[%s] Message: %s\n", clients[i].username, buffer);
+                }
             }
             }
         } 
