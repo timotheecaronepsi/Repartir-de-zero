@@ -1,0 +1,21 @@
+=== Chat TCP Client/Serveur ===
+
+Description :
+- Ce projet est un chat en C utilisant des sockets TCP. Il permet :
+- Connexion et inscription d’utilisateurs.
+- Envoi de messages privés (msg:Destinataire:Texte).
+- Envoi de messages globaux (msgall:Texte).
+- Alertes automatiques du serveur toutes les 2 minutes.
+
+Fonctionnement :
+- Le serveur écoute sur le port 12345.
+- Le client se connecte à l’IP du serveur qui lui attribut un socket pour chatter.
+
+Compilation & Exécution
+Windows :
+- gcc server.c -o server.exe -lws2_32
+- gcc client.c -o client.exe -lws2_32
+
+Lancer d’abord le serveur, puis le client en indiquant l’IP du serveur dans le client puis compiler le.
+
+===============================
