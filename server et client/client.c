@@ -51,7 +51,7 @@ int main() {
 
     // Configuration du serveur
     server.sin_family = AF_INET;
-    server.sin_addr.s_addr = inet_addr("10.60.12.26");
+    server.sin_addr.s_addr = inet_addr("176.180.22.163");
     server.sin_port = htons(12345);
 
     while (1) {
